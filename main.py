@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
-from typing import Optional, List, Dict
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Path, Query, Body
+from typing import Optional, List, Dict, Annotated
+from pydantic import BaseModel, Field
 
 app = FastAPI()
 
@@ -23,6 +23,14 @@ class PostCreate(BaseModel):
     body: str
     author_id: int
 
+
+class UserCreate(BaseModel):
+    name: Annotated[
+        str, Field(..., title='Имя пользователя', min_length=2, max_length=20)
+    ]
+    age: Annotated[
+        int, Field(..., title='Возраст пользователя', ge=1, le=120)
+    ]
 
 users = [
     {'id': 1, 'name': 'John', 'age': 14},
@@ -73,8 +81,27 @@ async def add_item(post: PostCreate) -> Post:
 
     return Post(**new_post)
 
+
+@app.post('/user/add')
+async def add_user(user: Annotated[
+    UserCreate,
+    Body(..., example={
+        'name': 'UserName',
+        'age': '1'
+    })
+]) -> User:
+
+    new_user_id = len(users) + 1
+
+    new_user = {'id': new_user_id, 'name': user.name, 'age': user.age}
+
+    posts.append(new_user)
+
+    return User(**new_user)
+
+
 @app.get('/items/{id}')
-def items(id: int) -> Post:
+def items(id: Annotated[int, Path(..., title='Здесь указывается id поста', ge=1, lt=100)]) -> Post:
     for post in posts:
         if post['id'] == id:
             return Post(**post)
@@ -83,7 +110,10 @@ def items(id: int) -> Post:
 
 
 @app.get('/search')
-def search(post_id: Optional[int] = None) -> Dict[str, Optional[Post]]:
+def search(post_id: Annotated[
+    Optional[int],
+    Query(title='ID of post to search for', ge=1, le=50)
+]) -> Dict[str, Optional[Post]]:
     if post_id:
         for post in posts:
             if post['id'] == post_id:
