@@ -48,7 +48,7 @@
       },
 
       async login() {
-        const response = await axios.post(`http://127.0.0.1:8000/users/${this.loginName}`)
+        const response = await axios.get(`http://127.0.0.1:8000/users/${this.loginName}`)
         if(response.data) {
           this.$emit('handleAuth');
         } else {
